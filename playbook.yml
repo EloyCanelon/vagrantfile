@@ -1,0 +1,62 @@
+---
+- name: Install DevOps Packages  
+  hosts: all
+  become: true
+  vars: 
+    docker_version: "26.0.0"
+    kubernetes_version: "v1.28.0"
+
+  tasks:
+    - name: Update and Upgrade apt Packages
+      apt:
+        upgrade: yes
+        update_cache: yes
+        cache_valid_time: 86400
+    
+    - name: Install required system Packages for docker
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - python3-pip
+          - virtualenv
+          - python3-setuptools
+        state: latest
+
+    - name: Add Docker GPG apt Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repository
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+    - name: Update apt and install docker-ce
+      apt:
+        name: docker-ce
+        state: latest
+        update_cache: true
+
+    - name: Install Docker Module for Python
+      pip:
+        name: docker
+
+    - name: add Vagrant user into docker group
+      user: 
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Instalar Kubectl
+      community.general.snap:
+        name: kubectl
+        classic: yes
+
+    - name: Check if kubectl is installed
+      shell: kubectl version --client
+      register: client
+      failed_when: client.rc > 1
